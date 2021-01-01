@@ -27,18 +27,14 @@ import se.kth.iv1351.smschool.model.Instrument;
 import se.kth.iv1351.smschool.model.Rental;
 
 import java.sql.*;
-import java.time.LocalDate;
-import java.time.LocalTime;
 import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.Date;
 import java.util.List;
-import java.util.Scanner;
+
 
 /**
  * A small program that illustrates how to write a simple JDBC program.
  */
-public class BasicJdbc {
+public class SMschoolDB {
 
     private static final String TABLE_NAME = "person";
     private static final String RENTAL = "rental";
@@ -64,20 +60,21 @@ public class BasicJdbc {
 
     private PreparedStatement findAllRentals;
     private PreparedStatement findAllAvailableInstrumentsStmt;
+
+
     private PreparedStatement countActiveStudentRental;
     private PreparedStatement studentRentStmt;
     private PreparedStatement findStudentStmt;
 
-    private void accessDB() {
+    public SMschoolDB() throws DBException {
         try {
             connectToDB();
             prepareStatements();
 
         } catch (SQLException | ClassNotFoundException exc) {
-            exc.printStackTrace();
+            throw new DBException("Could not connect to database.", exc);
         }
     }
-
 
     private int findStudent(int studentID) throws DBException {
         String failureMessage = "Could not search for student " + studentID;
@@ -90,7 +87,7 @@ public class BasicJdbc {
             findStudentStmt.setInt(1, studentID);
             result = findStudentStmt.executeQuery();
 
-            while(result.next()) {
+            while (result.next()) {
                 id = result.getInt(1);
             }
             connection.commit();
@@ -131,16 +128,19 @@ public class BasicJdbc {
         }
     }
 
-    private List<Instrument> listAllInstruments() throws DBException {
+    public List<Instrument> listAllInstruments() throws DBException {
         String failureMessage = "Could not search for available instruments";
 
-        ResultSet result = null;
-        List <Instrument> instruments = new ArrayList<>();
+        System.out.println("insside method");
+     //  ResultSet result = null;
+        List<Instrument> instruments = new ArrayList<>( );
 
-        try {
+        try(ResultSet result = findAllAvailableInstrumentsStmt.executeQuery();) {
+            System.out.println("inside try");
+            System.out.println(result.toString());
 
-            result = findAllAvailableInstrumentsStmt.executeQuery();
-
+            System.out.println(result.toString());
+            int counter = 0;
             while (result.next()) {
                 Instrument instr = new Instrument(result.getInt(1),
                         result.getString(2),
@@ -148,15 +148,20 @@ public class BasicJdbc {
                         result.getInt(4));
 
                 instruments.add(instr);
-
+                counter++;
+                System.out.println(counter);
             }
+            System.out.println("after try");
             connection.commit();
         } catch (SQLException sqlE) {
             handleException(failureMessage, sqlE);
-        } finally {
+        } /*
+         finally {
+            System.out.println(result.toString());
             closeResultSet(failureMessage, result);
         }
 
+        */
         return instruments;
     }
 
@@ -194,7 +199,6 @@ public class BasicJdbc {
             result = countActiveStudentRental.executeQuery();
 
 
-
             while (result.next()) {
                 activeRentals = result.getInt(1);
             }
@@ -218,42 +222,42 @@ public class BasicJdbc {
 
     private boolean instrumentIsAvailable(int instrumentID) throws DBException {
         List<Instrument> list = listAllInstruments();
-        for (Instrument instr: list) {
-              if(instr.getId() == instrumentID)
-                  return true;
+        for (Instrument instr : list) {
+            if (instr.getId() == instrumentID)
+                return true;
         }
-            return false;
+        return false;
     }
 
     private void studentRentInstrument(int studentID, String leaseEnd, int instrumentID) throws DBException {
         String failureMessage = "Could not rent instrument to specified student " + studentID + ".";
 
-        System.out.println("id: " + studentID + " leaseEnd: " + leaseEnd +" in_id: " + instrumentID);
+        System.out.println("id: " + studentID + " leaseEnd: " + leaseEnd + " in_id: " + instrumentID);
 
-        System.out.println("INSERT INTO " +  RENTAL  +
+        System.out.println("INSERT INTO " + RENTAL +
                 " (\"" + STUDENT_PK + "\", \"lease_start\", \"lease_end\", \"school_instrument_id\") " +
                 "VALUES (?, CURRENT_DATE, (CURRENT_DATE + interval '?' month)::date, ?)");
 
         int updatedRows = 0;
 
         try {
-            if(findStudent(studentID)!= studentID)
-               return;
+            if (findStudent(studentID) != studentID)
+                return;
 
             studentRentStmt.setInt(1, studentID);
             studentRentStmt.setDate(2, java.sql.Date.valueOf(leaseEnd));
             studentRentStmt.setInt(3, instrumentID);
 
-           // studentRentStmt.setDate(1,2);
+            // studentRentStmt.setDate(1,2);
             String s = studentRentStmt.toString();
 
             System.out.println(studentRentStmt.toString());
 
 
-            updatedRows =studentRentStmt.executeUpdate();
+            updatedRows = studentRentStmt.executeUpdate();
 
             if (updatedRows != 1) {
-             handleException(failureMessage, null);
+                handleException(failureMessage, null);
             }
             connection.commit();
 
@@ -263,7 +267,7 @@ public class BasicJdbc {
     }
 
     private void connectToDB() throws SQLException, ClassNotFoundException {
-        // Class.forName("org.postgresql.Driver");
+        //    Class.forName("org.postgresql.Driver");
 
         connection = DriverManager.getConnection("jdbc:postgresql://localhost:5432/school",
                 "postgres", "example");
@@ -295,8 +299,8 @@ public class BasicJdbc {
     }
 
     private void prepareStatements() throws SQLException {
-   //     createPersonStmt = connection.prepareStatement("INSERT INTO " + TABLE_NAME + " VALUES (?, ?, ?)");
-   //     findAllPersonsStmt = connection.prepareStatement("SELECT * from " + TABLE_NAME);
+        //     createPersonStmt = connection.prepareStatement("INSERT INTO " + TABLE_NAME + " VALUES (?, ?, ?)");
+        //     findAllPersonsStmt = connection.prepareStatement("SELECT * from " + TABLE_NAME);
 //        deletePersonStmt = connection.prepareStatement("DELETE FROM " + TABLE_NAME + " WHERE name = ?");
 
         findAllAvailableInstrumentsStmt = connection.prepareStatement("SELECT school_instrument_id, type, brand, price_per_month" +
@@ -311,8 +315,8 @@ public class BasicJdbc {
         countActiveStudentRental = connection.prepareStatement("SELECT COUNT(*) FROM " + RENTAL +
                 " WHERE student_id = ? AND CURRENT_DATE BETWEEN lease_start AND lease_end");
 
-        studentRentStmt = connection.prepareStatement("INSERT INTO " +  RENTAL  +
-               " (\"" + STUDENT_PK + "\", \"lease_start\", \"lease_end\", \"school_instrument_id\") " +
+        studentRentStmt = connection.prepareStatement("INSERT INTO " + RENTAL +
+                " (\"" + STUDENT_PK + "\", \"lease_start\", \"lease_end\", \"school_instrument_id\") " +
                 "VALUES (?, CURRENT_DATE, ?, ?)");
 
         findStudentStmt = connection.prepareStatement("SELECT " + STUDENT_PK + " FROM student WHERE " +
@@ -344,8 +348,8 @@ VALUES (1, CURRENT_DATE, (CURRENT_DATE + interval '5' month)::date, 32);
             failureMsg = failureMsg + ". Rollback failed due to: " + sqlExc.getMessage();
         }
 
-        if(cause != null) {
-            throw new DBException( message, cause);
+        if (cause != null) {
+            throw new DBException(message, cause);
         } else {
             throw new DBException(message);
         }
@@ -359,72 +363,9 @@ VALUES (1, CURRENT_DATE, (CURRENT_DATE + interval '5' month)::date, 32);
         }
     }
 
-
+/*
     public static void main(String[] args) throws SQLException, DBException {
-        Scanner input = new Scanner(System.in);
-
-        BasicJdbc db =new BasicJdbc();
-        db.accessDB();
-
-        /*
-            listAllRentals();
-            connection.commit();
-*/
-        //          listAllInstruments();
-        //          connection.commit();
-
-        //   listActiveRentalsForStudent();
-        //   connection.commit();
-        List<Instrument> list = db.listAllInstruments();
-        for (Instrument instr: list) {
-            System.out.println(instr);
-        }
-        int i;
-        while(true) {
-            System.out.println("enter your id: ");
-            i = input.nextInt();
-            if(i == 0)
-                break;
-
-            if (db.findStudent(i) == i) {
-                System.out.println("you exists. congrats");
-            }
-            else {
-                System.out.println("enter valid id");
-                continue;
-            }
-            boolean bool =  db.studentCanRent(i);
-            db.connection.commit();
-            if(bool) {
-                System.out.println(i + ": can rent" );
-                System.out.println("enter instr id");
-                int instr = input.nextInt();
-                if(db.instrumentIsAvailable(instr)) {
-                    System.out.println("instrument available. Do you want to rent? yes - [1]");
-                    if (input.nextInt() == 1) {
-                        System.out.println("You can rent an instrument at maximum 12 month.\n " +
-                                "Please enter how many month you want to rent: ");
-                        int month = input.nextInt();
-                        if (month > 12 || month < 1) {
-                            System.out.println("Invalid input. Cannot rent instrument in " + month + " month(s)");
-                        }
-
-                        Date dt = new Date();
-
-
-                        LocalDate returnDate = LocalDate.now().plusMonths(month);
-                        if(returnDate.isAfter(LocalDate.now()))
-                            db.studentRentInstrument(i, returnDate.toString(), instr );
-
-                    }
-                } else  {
-                    System.out.println("instrument not available");
-                }
-            } else {
-                System.out.println(i + ": cannot rent" );
-            }
-        }
 
     }
-
+*/
 }
