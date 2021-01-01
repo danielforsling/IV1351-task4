@@ -21,7 +21,7 @@
  * THE SOFTWARE.
  */
 
-package se.kth.iv1351.smschool;
+package se.kth.iv1351.smschool.integration;
 
 import se.kth.iv1351.smschool.model.Instrument;
 import se.kth.iv1351.smschool.model.Rental;
@@ -32,6 +32,9 @@ import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Scanner;
 
 /**
  * A small program that illustrates how to write a simple JDBC program.
@@ -39,6 +42,7 @@ import java.sql.SQLException;
 public class BasicJdbc {
 
     private static final String TABLE_NAME = "person";
+    private static final String RENTAL = "rental";
     private static final String RENTAL_COL1 = "rental_id";
     private static final String RENTAL_COL2 = "student_id";
     private static final String RENTAL_COL3 = "lease_start";
@@ -48,6 +52,8 @@ public class BasicJdbc {
     private static final String AVAIL_INSTR_COL2 = "type";
     private static final String AVAIL_INSTR_COL3 = "brand";
     private static final String AVAIL_INSTR_COL4 = "price_per_month";
+
+    private static final String STUDENT_PK = "student_id";
 
     private Connection connection;
 
@@ -60,39 +66,47 @@ public class BasicJdbc {
     private PreparedStatement findAllRentals;
     private PreparedStatement findAllAvailableInstrumentsStmt;
     private PreparedStatement countActiveStudentRental;
-
-    public static void main(String[] args) {
-        new BasicJdbc().accessDB();
-    }
+    private PreparedStatement studentRentStmt;
+    private PreparedStatement findStudentStmt;
 
     private void accessDB() {
         try {
             connectToDB();
             prepareStatements();
-/*
-            listAllRentals();
-            connection.commit();
-*/
-            //          listAllInstruments();
-            //          connection.commit();
-
-            //   listActiveRentalsForStudent();
-            //   connection.commit();
-
-            for (int i = 0; i < 25; i++) {
-                checkStudentActiveRentals(i);
-                connection.commit();
-            }
-
 
         } catch (SQLException | ClassNotFoundException exc) {
             exc.printStackTrace();
         }
     }
 
-    private void listAllRentals() {
-        try {
 
+    private int findStudent(int studentID) throws DBException {
+        String failureMessage = "Could not search for student";
+
+        ResultSet result = null;
+
+        int id = 0;
+
+        try {
+            findStudentStmt.setInt(1, studentID);
+            result = findStudentStmt.executeQuery();
+
+            while(result.next()) {
+                id = result.getInt(1);
+            }
+            connection.commit();
+        } catch (SQLException sqlE) {
+            handleException(failureMessage, sqlE);
+        } finally {
+            closeResultSet(failureMessage, result);
+        }
+
+        return id;
+    }
+
+    private void listAllRentals() {
+
+        try {
             int counter = 0;
 
             ResultSet result = null;
@@ -118,38 +132,41 @@ public class BasicJdbc {
         }
     }
 
-    private void listAllInstruments() {
-        try {
-            int counter = 0;
+    private List<Instrument> listAllInstruments() throws DBException {
+        String failureMessage = "Could not search for available instruments";
 
-            ResultSet result = null;
+        ResultSet result = null;
+        List <Instrument> instruments = new ArrayList<>();
+
+        try {
+
             result = findAllAvailableInstrumentsStmt.executeQuery();
 
-            if (!result.wasNull())
-                System.out.println(AVAIL_INSTR_COL1 + " " + AVAIL_INSTR_COL2 + " " + AVAIL_INSTR_COL3 + " " + AVAIL_INSTR_COL4);
             while (result.next()) {
                 Instrument instr = new Instrument(result.getInt(1),
                         result.getString(2),
                         result.getString(3),
                         result.getInt(4));
-                System.out.println(instr);
-                counter++;
-            }
-            System.out.println(counter + " results.");
 
-        } catch (SQLException sqlErr) {
-            sqlErr.printStackTrace();
+                instruments.add(instr);
+
+            }
+            connection.commit();
+        } catch (SQLException sqlE) {
+            handleException(failureMessage, sqlE);
+        } finally {
+            closeResultSet(failureMessage, result);
         }
+
+        return instruments;
     }
 
     private void listActiveRentalsForStudent(int studentID) {
         try {
-            int counter = 0;
             ResultSet result = null;
 
             findActiveRentalsWithStudent.setInt(1, studentID);
             result = findActiveRentalsWithStudent.executeQuery();
-
 
             while (result.next()) {
                 Rental rental = new Rental(result.getInt(1),
@@ -158,35 +175,73 @@ public class BasicJdbc {
                         result.getString(4),
                         result.getInt(5));
                 System.out.println(rental);
-                counter++;
+
             }
-            System.out.println(counter + " results.");
+
 
         } catch (SQLException sqlErr) {
             sqlErr.printStackTrace();
         }
     }
 
-    private void checkStudentActiveRentals(int studentID) {
+    private int checkStudentActiveRentals(int studentID) throws DBException {
+        String failureMessage = "Could not search for rentals of specified student.";
+        ResultSet result = null;
+        int activeRentals = 0;
         try {
             int counter = 0;
 
-            ResultSet result = null;
             countActiveStudentRental.setInt(1, studentID);
             result = countActiveStudentRental.executeQuery();
 
-            int activeRentals = 0;
+
 
             while (result.next()) {
                 activeRentals = result.getInt(1);
             }
+            return activeRentals;
+        } catch (SQLException sqlE) {
+            handleException(failureMessage, sqlE);
+        } finally {
+            closeResultSet(failureMessage, result);
+        }
+        return activeRentals;
+    }
 
-            System.out.println(studentID + ": " + activeRentals);
-            //   System.out.println(counter + " results.");
 
+    private boolean studentCanRent(int studentID) throws DBException {
+        int noOfRentals = checkStudentActiveRentals(studentID);
+        if (noOfRentals < 2)
+            return true;
+        else
+            return false;
+    }
 
-        } catch (SQLException sqlErr) {
-            sqlErr.printStackTrace();
+    private boolean instrumentIsAvailable(int instrumentID) throws DBException {
+        List<Instrument> list = listAllInstruments();
+        for (Instrument instr: list) {
+              if(instr.getId() == instrumentID)
+                  return true;
+        }
+            return false;
+    }
+
+    private void studentRentInstrument(int studentID, String leaseEnd, int instrumentID) throws SQLException {
+        int updatedRows = 0;
+
+        try {
+            if(findStudent(studentID)!= studentID)
+               return;
+
+            studentRentStmt.setInt(1, studentID);
+            studentRentStmt.setString(2, leaseEnd);
+            studentRentStmt.setInt(3, instrumentID);
+            updatedRows =studentRentStmt.executeUpdate();
+            if (updatedRows != 1)
+                System.out.println("something went wrong");
+
+        } catch (SQLException | DBException sqlE)  {
+            sqlE.printStackTrace();
         }
 
     }
@@ -233,11 +288,102 @@ public class BasicJdbc {
                 " ON available_instruments.instrument_type_id = instrument_type.instrument_type_id " +
                 "WHERE available = 'TRUE'");
 
-        findAllRentals = connection.prepareStatement("SELECT * FROM rental");
-        findActiveRentalsWithStudent = connection.prepareStatement("SELECT * FROM rental " +
-                " WHERE student_id = ? AND CURRENT_DATE BETWEEN lease_start AND lease_end;");
+        findAllRentals = connection.prepareStatement("SELECT * FROM " + RENTAL);
+        findActiveRentalsWithStudent = connection.prepareStatement("SELECT * FROM " + RENTAL +
+                " WHERE student_id = ? AND CURRENT_DATE BETWEEN lease_start AND lease_end");
 
-        countActiveStudentRental = connection.prepareStatement("SELECT COUNT(*) FROM rental" +
-                " WHERE student_id = ? AND CURRENT_DATE BETWEEN lease_start AND lease_end;");
+        countActiveStudentRental = connection.prepareStatement("SELECT COUNT(*) FROM " + RENTAL +
+                " WHERE student_id = ? AND CURRENT_DATE BETWEEN lease_start AND lease_end");
+
+        studentRentStmt = connection.prepareStatement("INSERT INTO " +  RENTAL  +
+               " " + STUDENT_PK + ", \"lease_start\", \"lease_end\", \"school_instrument_id\" " +
+                "VALUES (?, CURRENT_DATE, ?, ?)");
+
+        findStudentStmt = connection.prepareStatement("SELECT " + STUDENT_PK + " FROM student WHERE " +
+                STUDENT_PK + " = ?");
+
     }
+
+    /*
+
+    INSERT INTO "rental" ("student_id", "lease_start", "lease_end", "school_instrument_id")
+VALUES ('1', now(), '2022-01-01', '32');
+
+
+     */
+
+
+    private void handleException(String message, Exception cause) throws DBException {
+
+        String failureMsg = message;
+
+        try {
+            connection.rollback();
+        } catch (SQLException sqlExc) {
+            failureMsg = failureMsg + ". Rollback failed due to: " + sqlExc.getMessage();
+        }
+
+        if(cause != null) {
+            throw new DBException( message, cause);
+        } else {
+            throw new DBException(message);
+        }
+    }
+
+    private void closeResultSet(String message, ResultSet result) throws DBException {
+        try {
+            result.close();
+        } catch (Exception e) {
+            throw new DBException(message + ". Could not close result set.", e);
+        }
+    }
+
+
+    public static void main(String[] args) throws SQLException, DBException {
+        Scanner input = new Scanner(System.in);
+
+        BasicJdbc db =new BasicJdbc();
+        db.accessDB();
+
+        /*
+            listAllRentals();
+            connection.commit();
+*/
+        //          listAllInstruments();
+        //          connection.commit();
+
+        //   listActiveRentalsForStudent();
+        //   connection.commit();
+        List<Instrument> list = db.listAllInstruments();
+        for (Instrument instr: list) {
+            System.out.println(instr);
+        }
+        int i;
+        while(true) {
+            System.out.println("enter your id: ");
+            i = input.nextInt();
+            if(i == 0)
+                break;
+
+            if (db.findStudent(i) == i) {
+                System.out.println("you exists. congrats");
+            }
+            else {
+                System.out.println("enter valid id");
+                continue;
+            }
+            boolean bool =  db.studentCanRent(i);
+            db.connection.commit();
+            if(bool) {
+                System.out.println(i + ": can rent" );
+                System.out.println("enter instr id");
+
+                System.out.println(db.instrumentIsAvailable(input.nextInt()));
+            } else {
+                System.out.println(i + ": cannot rent" );
+            }
+        }
+
+    }
+
 }

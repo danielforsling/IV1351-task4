@@ -28,6 +28,10 @@ public class Instrument {
         this.pricePerMonth = pricePerMonth;
     }
 
+    public int getId() {
+        return id;
+    }
+
     /**
      * @return A string representation of this object.
      */
