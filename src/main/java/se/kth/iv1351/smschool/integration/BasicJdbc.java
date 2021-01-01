@@ -26,13 +26,12 @@ package se.kth.iv1351.smschool.integration;
 import se.kth.iv1351.smschool.model.Instrument;
 import se.kth.iv1351.smschool.model.Rental;
 
-import java.sql.Connection;
-import java.sql.DatabaseMetaData;
-import java.sql.DriverManager;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
+import java.sql.*;
+import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Date;
 import java.util.List;
 import java.util.Scanner;
 
@@ -81,7 +80,7 @@ public class BasicJdbc {
 
 
     private int findStudent(int studentID) throws DBException {
-        String failureMessage = "Could not search for student";
+        String failureMessage = "Could not search for student " + studentID;
 
         ResultSet result = null;
 
@@ -185,7 +184,7 @@ public class BasicJdbc {
     }
 
     private int checkStudentActiveRentals(int studentID) throws DBException {
-        String failureMessage = "Could not search for rentals of specified student.";
+        String failureMessage = "Could not search for rentals of specified student " + studentID + ".";
         ResultSet result = null;
         int activeRentals = 0;
         try {
@@ -226,7 +225,15 @@ public class BasicJdbc {
             return false;
     }
 
-    private void studentRentInstrument(int studentID, String leaseEnd, int instrumentID) throws SQLException {
+    private void studentRentInstrument(int studentID, String leaseEnd, int instrumentID) throws DBException {
+        String failureMessage = "Could not rent instrument to specified student " + studentID + ".";
+
+        System.out.println("id: " + studentID + " leaseEnd: " + leaseEnd +" in_id: " + instrumentID);
+
+        System.out.println("INSERT INTO " +  RENTAL  +
+                " (\"" + STUDENT_PK + "\", \"lease_start\", \"lease_end\", \"school_instrument_id\") " +
+                "VALUES (?, CURRENT_DATE, (CURRENT_DATE + interval '?' month)::date, ?)");
+
         int updatedRows = 0;
 
         try {
@@ -234,16 +241,25 @@ public class BasicJdbc {
                return;
 
             studentRentStmt.setInt(1, studentID);
-            studentRentStmt.setString(2, leaseEnd);
+            studentRentStmt.setDate(2, java.sql.Date.valueOf(leaseEnd));
             studentRentStmt.setInt(3, instrumentID);
+
+           // studentRentStmt.setDate(1,2);
+            String s = studentRentStmt.toString();
+
+            System.out.println(studentRentStmt.toString());
+
+
             updatedRows =studentRentStmt.executeUpdate();
-            if (updatedRows != 1)
-                System.out.println("something went wrong");
 
-        } catch (SQLException | DBException sqlE)  {
-            sqlE.printStackTrace();
+            if (updatedRows != 1) {
+             handleException(failureMessage, null);
+            }
+            connection.commit();
+
+        } catch (SQLException | DBException sqlE) {
+            handleException(failureMessage, sqlE);
         }
-
     }
 
     private void connectToDB() throws SQLException, ClassNotFoundException {
@@ -279,9 +295,9 @@ public class BasicJdbc {
     }
 
     private void prepareStatements() throws SQLException {
-        createPersonStmt = connection.prepareStatement("INSERT INTO " + TABLE_NAME + " VALUES (?, ?, ?)");
-        findAllPersonsStmt = connection.prepareStatement("SELECT * from " + TABLE_NAME);
-        deletePersonStmt = connection.prepareStatement("DELETE FROM " + TABLE_NAME + " WHERE name = ?");
+   //     createPersonStmt = connection.prepareStatement("INSERT INTO " + TABLE_NAME + " VALUES (?, ?, ?)");
+   //     findAllPersonsStmt = connection.prepareStatement("SELECT * from " + TABLE_NAME);
+//        deletePersonStmt = connection.prepareStatement("DELETE FROM " + TABLE_NAME + " WHERE name = ?");
 
         findAllAvailableInstrumentsStmt = connection.prepareStatement("SELECT school_instrument_id, type, brand, price_per_month" +
                 " FROM available_instruments INNER JOIN instrument_type" +
@@ -296,7 +312,7 @@ public class BasicJdbc {
                 " WHERE student_id = ? AND CURRENT_DATE BETWEEN lease_start AND lease_end");
 
         studentRentStmt = connection.prepareStatement("INSERT INTO " +  RENTAL  +
-               " " + STUDENT_PK + ", \"lease_start\", \"lease_end\", \"school_instrument_id\" " +
+               " (\"" + STUDENT_PK + "\", \"lease_start\", \"lease_end\", \"school_instrument_id\") " +
                 "VALUES (?, CURRENT_DATE, ?, ?)");
 
         findStudentStmt = connection.prepareStatement("SELECT " + STUDENT_PK + " FROM student WHERE " +
@@ -306,9 +322,14 @@ public class BasicJdbc {
 
     /*
 
+    SELECT (CURRENT_DATE + interval '12 month')::date
+
     INSERT INTO "rental" ("student_id", "lease_start", "lease_end", "school_instrument_id")
 VALUES ('1', now(), '2022-01-01', '32');
 
+INSERT INTO rental
+("student_id", "lease_start", "lease_end", "school_instrument_id")
+VALUES (1, CURRENT_DATE, (CURRENT_DATE + interval '5' month)::date, 32);
 
      */
 
@@ -377,8 +398,28 @@ VALUES ('1', now(), '2022-01-01', '32');
             if(bool) {
                 System.out.println(i + ": can rent" );
                 System.out.println("enter instr id");
+                int instr = input.nextInt();
+                if(db.instrumentIsAvailable(instr)) {
+                    System.out.println("instrument available. Do you want to rent? yes - [1]");
+                    if (input.nextInt() == 1) {
+                        System.out.println("You can rent an instrument at maximum 12 month.\n " +
+                                "Please enter how many month you want to rent: ");
+                        int month = input.nextInt();
+                        if (month > 12 || month < 1) {
+                            System.out.println("Invalid input. Cannot rent instrument in " + month + " month(s)");
+                        }
 
-                System.out.println(db.instrumentIsAvailable(input.nextInt()));
+                        Date dt = new Date();
+
+
+                        LocalDate returnDate = LocalDate.now().plusMonths(month);
+                        if(returnDate.isAfter(LocalDate.now()))
+                            db.studentRentInstrument(i, returnDate.toString(), instr );
+
+                    }
+                } else  {
+                    System.out.println("instrument not available");
+                }
             } else {
                 System.out.println(i + ": cannot rent" );
             }
