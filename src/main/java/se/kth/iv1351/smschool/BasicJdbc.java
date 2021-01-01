@@ -59,6 +59,7 @@ public class BasicJdbc {
 
     private PreparedStatement findAllRentals;
     private PreparedStatement findAllAvailableInstrumentsStmt;
+    private PreparedStatement countActiveStudentRental;
 
     public static void main(String[] args) {
         new BasicJdbc().accessDB();
@@ -71,20 +72,17 @@ public class BasicJdbc {
 /*
             listAllRentals();
             connection.commit();
-
-            listAllInstruments();
-            connection.commit();
 */
-         //   listActiveRentalsForStudent();
-         //   connection.commit();
+            //          listAllInstruments();
+            //          connection.commit();
 
-            for (int i = 5; i < 15; i++) {
+            //   listActiveRentalsForStudent();
+            //   connection.commit();
 
-
-                listActiveRentalsForStudent(i);
+            for (int i = 0; i < 25; i++) {
+                checkStudentActiveRentals(i);
                 connection.commit();
             }
-
 
 
         } catch (SQLException | ClassNotFoundException exc) {
@@ -132,7 +130,7 @@ public class BasicJdbc {
             while (result.next()) {
                 Instrument instr = new Instrument(result.getInt(1),
                         result.getString(2),
-                        result.getString(3) ,
+                        result.getString(3),
                         result.getInt(4));
                 System.out.println(instr);
                 counter++;
@@ -152,13 +150,12 @@ public class BasicJdbc {
             findActiveRentalsWithStudent.setInt(1, studentID);
             result = findActiveRentalsWithStudent.executeQuery();
 
-            if (!result.wasNull())
-              //  System.out.println(AVAIL_INSTR_COL1 + " " + AVAIL_INSTR_COL2 + " " + AVAIL_INSTR_COL3 + " " + AVAIL_INSTR_COL4);
+
             while (result.next()) {
                 Rental rental = new Rental(result.getInt(1),
                         result.getInt(2),
-                        result.getString(3) ,
-                        result.getString(4) ,
+                        result.getString(3),
+                        result.getString(4),
                         result.getInt(5));
                 System.out.println(rental);
                 counter++;
@@ -168,6 +165,30 @@ public class BasicJdbc {
         } catch (SQLException sqlErr) {
             sqlErr.printStackTrace();
         }
+    }
+
+    private void checkStudentActiveRentals(int studentID) {
+        try {
+            int counter = 0;
+
+            ResultSet result = null;
+            countActiveStudentRental.setInt(1, studentID);
+            result = countActiveStudentRental.executeQuery();
+
+            int activeRentals = 0;
+
+            while (result.next()) {
+                activeRentals = result.getInt(1);
+            }
+
+            System.out.println(studentID + ": " + activeRentals);
+            //   System.out.println(counter + " results.");
+
+
+        } catch (SQLException sqlErr) {
+            sqlErr.printStackTrace();
+        }
+
     }
 
     private void connectToDB() throws SQLException, ClassNotFoundException {
@@ -214,6 +235,9 @@ public class BasicJdbc {
 
         findAllRentals = connection.prepareStatement("SELECT * FROM rental");
         findActiveRentalsWithStudent = connection.prepareStatement("SELECT * FROM rental " +
+                " WHERE student_id = ? AND CURRENT_DATE BETWEEN lease_start AND lease_end;");
+
+        countActiveStudentRental = connection.prepareStatement("SELECT COUNT(*) FROM rental" +
                 " WHERE student_id = ? AND CURRENT_DATE BETWEEN lease_start AND lease_end;");
     }
 }
