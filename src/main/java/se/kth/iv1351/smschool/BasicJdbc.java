@@ -23,6 +23,9 @@
 
 package se.kth.iv1351.smschool;
 
+import se.kth.iv1351.smschool.model.Instrument;
+import se.kth.iv1351.smschool.model.Rental;
+
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.DriverManager;
@@ -52,6 +55,8 @@ public class BasicJdbc {
     private PreparedStatement findAllPersonsStmt;
     private PreparedStatement deletePersonStmt;
 
+    private PreparedStatement findActiveRentalsWithStudent;
+
     private PreparedStatement findAllRentals;
     private PreparedStatement findAllAvailableInstrumentsStmt;
 
@@ -63,12 +68,24 @@ public class BasicJdbc {
         try {
             connectToDB();
             prepareStatements();
-
+/*
             listAllRentals();
             connection.commit();
 
             listAllInstruments();
             connection.commit();
+*/
+         //   listActiveRentalsForStudent();
+         //   connection.commit();
+
+            for (int i = 5; i < 15; i++) {
+
+
+                listActiveRentalsForStudent(i);
+                connection.commit();
+            }
+
+
 
         } catch (SQLException | ClassNotFoundException exc) {
             exc.printStackTrace();
@@ -85,6 +102,9 @@ public class BasicJdbc {
 
             if (!result.wasNull())
                 System.out.println(RENTAL_COL1 + " " + RENTAL_COL2 + " " + RENTAL_COL3 + " " + RENTAL_COL4 + " " + RENTAL_COL4);
+            else {
+                System.out.println("null?!?!?");
+            }
             while (result.next()) {
                 System.out.println(result.getString(1) + " " +
                         result.getString(2) + " " +
@@ -110,10 +130,37 @@ public class BasicJdbc {
             if (!result.wasNull())
                 System.out.println(AVAIL_INSTR_COL1 + " " + AVAIL_INSTR_COL2 + " " + AVAIL_INSTR_COL3 + " " + AVAIL_INSTR_COL4);
             while (result.next()) {
-                System.out.println(result.getString(1) + " " +
-                        result.getString(2) + " " +
-                        result.getString(3) + " " +
-                        result.getString(4));
+                Instrument instr = new Instrument(result.getInt(1),
+                        result.getString(2),
+                        result.getString(3) ,
+                        result.getInt(4));
+                System.out.println(instr);
+                counter++;
+            }
+            System.out.println(counter + " results.");
+
+        } catch (SQLException sqlErr) {
+            sqlErr.printStackTrace();
+        }
+    }
+
+    private void listActiveRentalsForStudent(int studentID) {
+        try {
+            int counter = 0;
+            ResultSet result = null;
+
+            findActiveRentalsWithStudent.setInt(1, studentID);
+            result = findActiveRentalsWithStudent.executeQuery();
+
+            if (!result.wasNull())
+              //  System.out.println(AVAIL_INSTR_COL1 + " " + AVAIL_INSTR_COL2 + " " + AVAIL_INSTR_COL3 + " " + AVAIL_INSTR_COL4);
+            while (result.next()) {
+                Rental rental = new Rental(result.getInt(1),
+                        result.getInt(2),
+                        result.getString(3) ,
+                        result.getString(4) ,
+                        result.getInt(5));
+                System.out.println(rental);
                 counter++;
             }
             System.out.println(counter + " results.");
@@ -166,5 +213,7 @@ public class BasicJdbc {
                 "WHERE available = 'TRUE'");
 
         findAllRentals = connection.prepareStatement("SELECT * FROM rental");
+        findActiveRentalsWithStudent = connection.prepareStatement("SELECT * FROM rental " +
+                " WHERE student_id = ? AND CURRENT_DATE BETWEEN lease_start AND lease_end;");
     }
 }
