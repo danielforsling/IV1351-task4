@@ -8,14 +8,6 @@ public class Rental {
     private String leaseEnd;
     private int instrumentID;
 
-    public int getRentalID() {
-        return rentalID;
-    }
-
-    public int getInstrumentID() {
-        return instrumentID;
-    }
-
     /**
      *  constructor
      */
@@ -27,6 +19,29 @@ public class Rental {
         this.instrumentID = instrumentID;
     }
 
+    public int getRentalID() {
+        return rentalID;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Rental rental = (Rental) o;
+        return rentalID == rental.rentalID &&
+                studentID == rental.studentID;
+    }
+
+    public int getInstrumentID() {
+        return instrumentID;
+    }
+
+    public Rental getRental(int rentalID) {
+        if (this.rentalID ==rentalID)
+            return this;
+        else return null;
+    }
+
     /**
      * @return A string representation of this object.
      */
@@ -34,7 +49,7 @@ public class Rental {
     public String toString() {
 
         StringBuilder sb = new StringBuilder();
-        sb.append("Rental: [ id: " + rentalID);
+        sb.append("Rental: [ rentalID: " + rentalID);
         sb.append(", studentID: " + studentID);
         sb.append(", lease start: " + leaseStart);
         sb.append(", lease end: " + leaseEnd);

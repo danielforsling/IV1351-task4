@@ -357,7 +357,7 @@ public class SMschoolDB {
         updateInstrumentStatusStmt = connection.prepareStatement("UPDATE available_instruments SET \"available\" = ?" +
                 " WHERE \"school_instrument_id\" = ?");
 
-        terminateRentalStmt = connection.prepareStatement("UPDATE rental SET \"lease_END\" = CURRENT_DATE" +
+        terminateRentalStmt = connection.prepareStatement("UPDATE rental SET \"lease_end\" = CURRENT_DATE" +
                                                             " WHERE \"rental_id\" = ?");
 
     }

@@ -55,6 +55,8 @@ public class Main {
                             pressEnter(input);
                             break;
                         case 4:
+                            terminateRental(loggedIn, contr, input);
+                            pressEnter(input);
                             break;
                         default:
                             break;
@@ -79,7 +81,7 @@ public class Main {
 
     }
 
-    private static void getRentals(Student student, Controller controller) throws RetrieveDataException {
+    private static List getRentals(Student student, Controller controller) throws RetrieveDataException {
         System.out.println("Your active rentals:");
         List<Rental> list = controller.getActiveRentalsForStudent(student.getStudentID());
         if (list.isEmpty()) {
@@ -92,6 +94,7 @@ public class Main {
         }
         student.setNoOfRentals(controller.getNumberOfActiveRentals(student.getStudentID()));
         System.out.println("Number of rentals: " + student.getNoOfRentals() + "\n");
+        return list;
     }
 
     private static void rentInstrument(Student loggedIn, Scanner input, Controller controller) throws RetrieveDataException {
@@ -123,9 +126,7 @@ public class Main {
                             System.out.println("Rental aborted");
                     } else
                         System.out.println("Invalid input");
-
                 }
-
             } else {
                 System.out.println("instrument not available");
             }
@@ -134,6 +135,38 @@ public class Main {
         }
 
     }
+
+    private static void terminateRental(Student student, Controller controller, Scanner input) throws RetrieveDataException {
+        System.out.println("Which rental do you want to terminate?\nEnter rentalID:");
+        List<Rental> list = getRentals(student, controller);
+        Rental rentalToTerminate = null;
+        int index = input.nextInt();
+        for (Rental rental: list) {
+            if(rental.getRentalID()==index) {
+                rentalToTerminate = rental.getRental(index);
+                break;
+            }
+        }
+        if (!list.contains(rentalToTerminate))
+            System.out.println("Invalid input. No rental with id:" + index);
+        else {
+            try {
+                System.out.println("Confirm that you want to terminate rental with id: " + rentalToTerminate.getRentalID() +
+                        "\n and to return the instrument with id:" + rentalToTerminate.getInstrumentID() + " today \n To confirm, enter [1]");
+                if (input.nextInt() == 1) {
+                    controller.studentTerminateRental(rentalToTerminate);
+                    System.out.println("You have now terminated rental with id: " + rentalToTerminate.getInstrumentID());
+                } else
+                    System.out.println("Rental aborted");
+
+            } catch (RetrieveDataException e) {
+                e.printStackTrace();
+            }
+        }
+
+
+    }
+
 
     private static void pressEnter(Scanner input) {
         System.out.println("Press enter to continue");
