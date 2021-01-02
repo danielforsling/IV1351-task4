@@ -66,6 +66,8 @@ public class SMschoolDB {
     private PreparedStatement countActiveStudentRental;
     private PreparedStatement studentRentStmt;
     private PreparedStatement findStudentStmt;
+    private PreparedStatement updateInstrumentStatusStmt;
+    private PreparedStatement terminateRentalStmt;
 
     public SMschoolDB() throws DBException {
         try {
@@ -136,15 +138,10 @@ public class SMschoolDB {
     public List<Instrument> listAllInstruments() throws DBException {
         String failureMessage = "Could not search for available instruments";
 
-
         List<Instrument> instruments = new ArrayList<>();
 
         try (ResultSet result = findAllAvailableInstrumentsStmt.executeQuery();) {
-            System.out.println("inside try");
-            System.out.println(result.toString());
 
-            System.out.println(result.toString());
-            int counter = 0;
             while (result.next()) {
                 Instrument instr = new Instrument(result.getInt(1),
                         result.getString(2),
@@ -152,10 +149,8 @@ public class SMschoolDB {
                         result.getInt(4));
 
                 instruments.add(instr);
-                counter++;
-                System.out.println(counter);
             }
-            System.out.println("after try");
+
             connection.commit();
         } catch (SQLException sqlE) {
             handleException(failureMessage, sqlE);
@@ -228,7 +223,7 @@ public class SMschoolDB {
             return false;
     }
 
-    private boolean instrumentIsAvailable(int instrumentID) throws DBException {
+    public boolean instrumentIsAvailable(int instrumentID) throws DBException {
         List<Instrument> list = listAllInstruments();
         for (Instrument instr : list) {
             if (instr.getId() == instrumentID)
@@ -237,41 +232,70 @@ public class SMschoolDB {
         return false;
     }
 
-    private void studentRentInstrument(int studentID, String leaseEnd, int instrumentID) throws DBException {
+    public void studentRentInstrument(int studentID, String leaseEnd, int instrumentID) throws DBException {
         String failureMessage = "Could not rent instrument to specified student " + studentID + ".";
-
-        System.out.println("id: " + studentID + " leaseEnd: " + leaseEnd + " in_id: " + instrumentID);
-
-        System.out.println("INSERT INTO " + RENTAL +
-                " (\"" + STUDENT_PK + "\", \"lease_start\", \"lease_end\", \"school_instrument_id\") " +
-                "VALUES (?, CURRENT_DATE, (CURRENT_DATE + interval '?' month)::date, ?)");
 
         int updatedRows = 0;
 
         try {
-            //  if (findStudent(studentID) != studentID)
-            //      return;
 
             studentRentStmt.setInt(1, studentID);
             studentRentStmt.setDate(2, java.sql.Date.valueOf(leaseEnd));
             studentRentStmt.setInt(3, instrumentID);
-
-            // studentRentStmt.setDate(1,2);
-            String s = studentRentStmt.toString();
-
-            System.out.println(studentRentStmt.toString());
-
 
             updatedRows = studentRentStmt.executeUpdate();
 
             if (updatedRows != 1) {
                 handleException(failureMessage, null);
             }
+            updateInstrumentStatus(instrumentID, false);
             connection.commit();
 
         } catch (SQLException | DBException sqlE) {
             handleException(failureMessage, sqlE);
         }
+    }
+
+    private void updateInstrumentStatus(int instrumentID, boolean bool) throws DBException {
+
+        String failureMessage = "Could not update status of instrument: " + instrumentID + ".";
+        int updatedRows = 0;
+        try {
+            updateInstrumentStatusStmt.setBoolean(1, bool);
+            updateInstrumentStatusStmt.setInt(2, instrumentID);
+            updatedRows = updateInstrumentStatusStmt.executeUpdate();
+
+            if (updatedRows != 1) {
+                handleException(failureMessage, null);
+            }
+
+        } catch (SQLException sqlE) {
+            handleException(failureMessage, sqlE);
+        }
+    }
+
+    public void studentTerminateRental(Rental rental) throws DBException {
+        int rentalID = rental.getRentalID();
+        int instrumentID = rental.getInstrumentID();
+
+        String failureMessage = "Could not terminate rental: " + rentalID + ".";
+
+        int updatedRows = 0;
+
+        try {
+            terminateRentalStmt.setInt(1, rentalID);
+            
+            updatedRows = terminateRentalStmt.executeUpdate();
+
+            if (updatedRows != 1) {
+                handleException(failureMessage, null);
+            }
+            updateInstrumentStatus(instrumentID, true);
+            connection.commit();
+        } catch (SQLException | DBException e) {
+            handleException(failureMessage, e);
+        }
+
     }
 
     private void connectToDB() throws SQLException, ClassNotFoundException {
@@ -330,9 +354,21 @@ public class SMschoolDB {
         findStudentStmt = connection.prepareStatement("SELECT student_id, first_name, last_name FROM student WHERE " +
                 STUDENT_PK + " = ?");
 
+        updateInstrumentStatusStmt = connection.prepareStatement("UPDATE available_instruments SET \"available\" = ?" +
+                " WHERE \"school_instrument_id\" = ?");
+
+        terminateRentalStmt = connection.prepareStatement("UPDATE rental SET \"lease_END\" = CURRENT_DATE" +
+                                                            " WHERE \"rental_id\" = ?");
+
     }
 
     /*
+
+UPDATE available_instruments
+SET "available" = FALSE
+WHERE "school_instrument_id" = '4';
+
+
 
     SELECT (CURRENT_DATE + interval '12 month')::date
 

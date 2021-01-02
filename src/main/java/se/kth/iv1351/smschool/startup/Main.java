@@ -8,34 +8,19 @@ import se.kth.iv1351.smschool.model.RetrieveDataException;
 import se.kth.iv1351.smschool.model.Student;
 
 import java.sql.SQLOutput;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Scanner;
 
 public class Main {
 
-    public static <Rentals> void main(String[] args) {
+    public static void main(String[] args) {
         try {
             Controller contr = new Controller();
 
             Scanner input = new Scanner(System.in);
 
-
-        /*
-            listAllRentals();
-            connection.commit();
-*/
-            //          listAllInstruments();
-            //          connection.commit();
-
-            //   listActiveRentalsForStudent();
-            //   connection.commit();
             System.out.println("starting");
-    /*
-            List<? extends Instrument> list = contr.getAllAvailableInstruments();
-            for (Instrument instr: list) {
-                System.out.println(instr);
-            }
-     */
             int i;
             while (true) {
                 System.out.println("enter your id to log in: ");
@@ -43,75 +28,114 @@ public class Main {
                 if (i == 0)
                     break;
                 Student loggedIn = contr.findStudent(i);
-                if(loggedIn == null) {
+                if (loggedIn == null) {
                     System.out.println("Enter a valid id!");
                 }
-                while(i != 0 && loggedIn!=null) {
+                while (i != 0 && loggedIn != null) {
                     System.out.println("Logged in as: " + loggedIn.getFirstName() + " " + loggedIn.getLastName());
                     System.out.println("1 - check rentals");
-                    System.out.println("0 - log out");
-                   //move move
-                    loggedIn.setNoOfRentals(contr.getNumberOfActiveRentals(loggedIn.getStudentID()));
-                    System.out.println("no of rentals: " +  loggedIn.getNoOfRentals());
+                    System.out.println("2 - check available instruments");
+                    System.out.println("3 - rent an instrument");
+                    System.out.println("4 - terminate rental");
+                    System.out.println("0 - log out\n");
+
                     i = input.nextInt();
                     switch (i) {
                         case 1:
-                           List<Rental> list = contr.getActiveRentalsForStudent(loggedIn.getStudentID());
-                           if(list.isEmpty())
-                               System.out.println("No rentals");
-                           else {
-                               for (Rental rent : list) {
-                                   System.out.println(rent);
-                               }
-                           }
+                            getRentals(loggedIn, contr);
+                            pressEnter(input);
+                            break;
+                        case 2:
+                            List<? extends Instrument> availInstru = contr.getAllAvailableInstruments();
+                            for (Instrument instr : availInstru) {
+                                System.out.println(instr);
+                            }
+                            pressEnter(input);
+                            break;
+                        case 3:
+                            rentInstrument(loggedIn, input, contr);
 
+                            pressEnter(input);
+                            break;
+                        case 4:
+                            break;
                         default:
                             break;
                     }
 
-
                 }
             }
-/*
-
-                boolean bool =  db.studentCanRent(i);
-                db.connection.commit();
-                if(bool) {
-                    System.out.println(i + ": can rent" );
-                    System.out.println("enter instr id");
-                    int instr = input.nextInt();
-                    if(db.instrumentIsAvailable(instr)) {
-                        System.out.println("instrument available. Do you want to rent? yes - [1]");
-                        if (input.nextInt() == 1) {
-                            System.out.println("You can rent an instrument at maximum 12 month.\n " +
-                                    "Please enter how many month you want to rent: ");
-                            int month = input.nextInt();
-                            if (month > 12 || month < 1) {
-                                System.out.println("Invalid input. Cannot rent instrument in " + month + " month(s)");
-                            }
-
-                            Date dt = new Date();
-
-
-                            LocalDate returnDate = LocalDate.now().plusMonths(month);
-                            if(returnDate.isAfter(LocalDate.now()))
-                                db.studentRentInstrument(i, returnDate.toString(), instr );
-
-                        }
-                    } else  {
-                        System.out.println("instrument not available");
-                    }
-                } else {
-                    System.out.println(i + ": cannot rent" );
-                }
-            }
-*/
 
         } catch (DBException | RetrieveDataException e) {
             System.out.println("Error somehow");
             e.printStackTrace();
+        } catch (Exception e) {
+            e.printStackTrace();
         }
 
+    }
 
+    private static void getRentals(Student student, Controller controller) throws RetrieveDataException {
+        List<Rental> list = controller.getActiveRentalsForStudent(student.getStudentID());
+        if (list.isEmpty()) {
+            System.out.println("You have no rentals");
+        } else {
+            for (Rental rent : list) {
+                System.out.println(rent);
+            }
+
+        }
+        student.setNoOfRentals(controller.getNumberOfActiveRentals(student.getStudentID()));
+        System.out.println("Number of rentals: " + student.getNoOfRentals() + "\n");
+
+
+    }
+
+    private static void rentInstrument(Student loggedIn, Scanner input, Controller controller) throws RetrieveDataException {
+
+        int noOfRentals = loggedIn.getNoOfRentals();
+        if (noOfRentals < 2) {
+            System.out.println("You can rent " + (2 - noOfRentals) + " instruments");
+            System.out.println("Enter the id of the instrument you want to rent");
+            int instr = input.nextInt();
+            if (controller.instrumentIsAvailable(instr)) {
+                System.out.println("Instrument is available.");
+
+                System.out.println("You can rent an instrument at maximum 12 months.\n " +
+                        "Please enter how many month(s) you want to rent: ");
+                int month = input.nextInt();
+                if (month > 12 || month < 1) {
+                    System.out.println("Invalid input. Cannot rent instrument in " + month + " month(s)");
+                } else {
+                    LocalDate returnDate = LocalDate.now().plusMonths(month);
+                    if (returnDate.isAfter(LocalDate.now())) {
+
+                        System.out.println("Confirm that you want to rent instrument with id: " + instr +
+                                " and return date: " + returnDate + "\n To confirm, enter [1]");
+                        if (input.nextInt() == 1) {
+                            controller.studentRentInstrument(loggedIn.getStudentID(), returnDate.toString(), instr);
+                            System.out.println("You have now rented instrument with id: " + instr +
+                                    " and return date: " + returnDate);
+                        } else
+                            System.out.println("Rental aborted");
+                    } else
+                        System.out.println("Invalid input");
+
+                }
+
+            } else {
+                System.out.println("instrument not available");
+            }
+        } else {
+            System.out.println("You cannot rent since you have " + loggedIn.getNoOfRentals() + " rentals.");
+        }
+
+    }
+
+    private static void pressEnter(Scanner input) {
+        System.out.println("Press enter to continue");
+        input.nextLine();
+        input.nextLine();
+        System.out.println();
     }
 }

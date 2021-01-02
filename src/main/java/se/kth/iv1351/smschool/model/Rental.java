@@ -8,6 +8,14 @@ public class Rental {
     private String leaseEnd;
     private int instrumentID;
 
+    public int getRentalID() {
+        return rentalID;
+    }
+
+    public int getInstrumentID() {
+        return instrumentID;
+    }
+
     /**
      *  constructor
      */

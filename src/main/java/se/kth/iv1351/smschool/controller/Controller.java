@@ -51,4 +51,30 @@ public class Controller {
            throw new RetrieveDataException("Failed to retrieve number of rentals", e);
         }
     }
+
+    public boolean instrumentIsAvailable(int instrumentID)
+                                                throws RetrieveDataException {
+        try {
+            return schoolDatabase.instrumentIsAvailable(instrumentID);
+        } catch (DBException e) {
+           throw new RetrieveDataException("Failed to check if instruments is available", e);
+        }
+    }
+
+    public void studentRentInstrument(int studentID, String date, int instr)
+                                                throws RetrieveDataException {
+        try {
+            schoolDatabase.studentRentInstrument(studentID, date, instr );
+        } catch (DBException e) {
+            throw new RetrieveDataException("Failed to rent instrument" , e);
+        }
+    }
+
+    public void studentTerminateRental(Rental rental) throws RetrieveDataException {
+        try {
+            schoolDatabase.studentTerminateRental(rental);
+        } catch (DBException e) {
+            throw new RetrieveDataException("Failed to terminate rental", e);
+        }
+    }
 }
