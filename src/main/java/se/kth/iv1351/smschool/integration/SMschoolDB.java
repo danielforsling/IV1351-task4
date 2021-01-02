@@ -25,6 +25,7 @@ package se.kth.iv1351.smschool.integration;
 
 import se.kth.iv1351.smschool.model.Instrument;
 import se.kth.iv1351.smschool.model.Rental;
+import se.kth.iv1351.smschool.model.Student;
 
 import java.sql.*;
 import java.util.ArrayList;
@@ -76,19 +77,23 @@ public class SMschoolDB {
         }
     }
 
-    private int findStudent(int studentID) throws DBException {
+    public Student findStudent(int studentID) throws DBException {
         String failureMessage = "Could not search for student " + studentID;
 
         ResultSet result = null;
 
-        int id = 0;
+        Student student = null;
 
         try {
             findStudentStmt.setInt(1, studentID);
             result = findStudentStmt.executeQuery();
 
-            while (result.next()) {
-                id = result.getInt(1);
+            if (result.next()) {
+                student = new Student(
+                        (int)result.getInt(STUDENT_PK),
+                        result.getString(2),
+                        result.getString(3)
+                );
             }
             connection.commit();
         } catch (SQLException sqlE) {
@@ -97,7 +102,7 @@ public class SMschoolDB {
             closeResultSet(failureMessage, result);
         }
 
-        return id;
+        return student;
     }
 
     private void listAllRentals() {
@@ -131,11 +136,10 @@ public class SMschoolDB {
     public List<Instrument> listAllInstruments() throws DBException {
         String failureMessage = "Could not search for available instruments";
 
-        System.out.println("insside method");
-     //  ResultSet result = null;
-        List<Instrument> instruments = new ArrayList<>( );
 
-        try(ResultSet result = findAllAvailableInstrumentsStmt.executeQuery();) {
+        List<Instrument> instruments = new ArrayList<>();
+
+        try (ResultSet result = findAllAvailableInstrumentsStmt.executeQuery();) {
             System.out.println("inside try");
             System.out.println(result.toString());
 
@@ -165,30 +169,34 @@ public class SMschoolDB {
         return instruments;
     }
 
-    private void listActiveRentalsForStudent(int studentID) {
+    public List<? extends Rental> listActiveRentalsForStudent(int studentID) throws DBException {
+        String failureMessage = "Could not retrieve rentals for studentID" + studentID;
+        ResultSet result = null;
+
+        List<Rental> rentals = new ArrayList<>();
         try {
-            ResultSet result = null;
 
             findActiveRentalsWithStudent.setInt(1, studentID);
             result = findActiveRentalsWithStudent.executeQuery();
 
             while (result.next()) {
-                Rental rental = new Rental(result.getInt(1),
+
+                rentals.add(new Rental(result.getInt(1),
                         result.getInt(2),
                         result.getString(3),
                         result.getString(4),
-                        result.getInt(5));
-                System.out.println(rental);
-
+                        result.getInt(5)));
             }
-
-
+       connection.commit();
         } catch (SQLException sqlErr) {
-            sqlErr.printStackTrace();
+            handleException(failureMessage, sqlErr);
+        } finally {
+            closeResultSet(failureMessage, result);
         }
+        return rentals;
     }
 
-    private int checkStudentActiveRentals(int studentID) throws DBException {
+    public int countStudentActiveRentals(int studentID) throws DBException {
         String failureMessage = "Could not search for rentals of specified student " + studentID + ".";
         ResultSet result = null;
         int activeRentals = 0;
@@ -213,7 +221,7 @@ public class SMschoolDB {
 
 
     private boolean studentCanRent(int studentID) throws DBException {
-        int noOfRentals = checkStudentActiveRentals(studentID);
+        int noOfRentals = countStudentActiveRentals(studentID);
         if (noOfRentals < 2)
             return true;
         else
@@ -241,8 +249,8 @@ public class SMschoolDB {
         int updatedRows = 0;
 
         try {
-            if (findStudent(studentID) != studentID)
-                return;
+            //  if (findStudent(studentID) != studentID)
+            //      return;
 
             studentRentStmt.setInt(1, studentID);
             studentRentStmt.setDate(2, java.sql.Date.valueOf(leaseEnd));
@@ -319,7 +327,7 @@ public class SMschoolDB {
                 " (\"" + STUDENT_PK + "\", \"lease_start\", \"lease_end\", \"school_instrument_id\") " +
                 "VALUES (?, CURRENT_DATE, ?, ?)");
 
-        findStudentStmt = connection.prepareStatement("SELECT " + STUDENT_PK + " FROM student WHERE " +
+        findStudentStmt = connection.prepareStatement("SELECT student_id, first_name, last_name FROM student WHERE " +
                 STUDENT_PK + " = ?");
 
     }
