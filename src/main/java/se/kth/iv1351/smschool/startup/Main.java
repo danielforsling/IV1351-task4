@@ -33,8 +33,8 @@ public class Main {
                 }
                 while (i != 0 && loggedIn != null) {
                     System.out.println("Logged in as: " + loggedIn.getFirstName() + " " + loggedIn.getLastName());
-                    System.out.println("1 - check rentals");
-                    System.out.println("2 - check available instruments");
+                    System.out.println("1 - check available instruments");
+                    System.out.println("2 - check rentals");
                     System.out.println("3 - rent an instrument");
                     System.out.println("4 - terminate rental");
                     System.out.println("0 - log out\n");
@@ -42,14 +42,11 @@ public class Main {
                     i = input.nextInt();
                     switch (i) {
                         case 1:
-                            getRentals(loggedIn, contr);
+                            getAvailableInstruments(contr);
                             pressEnter(input);
                             break;
                         case 2:
-                            List<? extends Instrument> availInstru = contr.getAllAvailableInstruments();
-                            for (Instrument instr : availInstru) {
-                                System.out.println(instr);
-                            }
+                            getRentals(loggedIn, contr);
                             pressEnter(input);
                             break;
                         case 3:
@@ -69,13 +66,21 @@ public class Main {
         } catch (DBException | RetrieveDataException e) {
             System.out.println("Error somehow");
             e.printStackTrace();
-        } catch (Exception e) {
-            e.printStackTrace();
+        }
+
+    }
+
+    private static void getAvailableInstruments(Controller controller) throws RetrieveDataException {
+        System.out.println("All available instruments:");
+        List<? extends Instrument> list = controller.getAllAvailableInstruments();
+        for (Instrument instr : list) {
+            System.out.println(instr);
         }
 
     }
 
     private static void getRentals(Student student, Controller controller) throws RetrieveDataException {
+        System.out.println("Your active rentals:");
         List<Rental> list = controller.getActiveRentalsForStudent(student.getStudentID());
         if (list.isEmpty()) {
             System.out.println("You have no rentals");
@@ -87,8 +92,6 @@ public class Main {
         }
         student.setNoOfRentals(controller.getNumberOfActiveRentals(student.getStudentID()));
         System.out.println("Number of rentals: " + student.getNoOfRentals() + "\n");
-
-
     }
 
     private static void rentInstrument(Student loggedIn, Scanner input, Controller controller) throws RetrieveDataException {

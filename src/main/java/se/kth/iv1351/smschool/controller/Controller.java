@@ -18,7 +18,7 @@ public class Controller {
     }
 
     public List<? extends Instrument> getAllAvailableInstruments()
-    throws Exception{
+    throws RetrieveDataException{
         try {
             return schoolDatabase.listAllInstruments();
         } catch (DBException e) {
