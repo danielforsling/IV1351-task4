@@ -1,8 +1,12 @@
+/*
+ *   @author Daniel Forsling 2021-01-02
+ */
+
 package se.kth.iv1351.smschool.integration;
 
 
 /**
- *
+ * Thrown when a call to the database fails.
  */
 public class DBException extends Exception {
 

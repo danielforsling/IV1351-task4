@@ -1,3 +1,6 @@
+/*
+*   @author Daniel Forsling 2021-01-02
+ */
 package se.kth.iv1351.smschool.startup;
 
 import se.kth.iv1351.smschool.controller.Controller;
@@ -7,13 +10,21 @@ import se.kth.iv1351.smschool.model.Rental;
 import se.kth.iv1351.smschool.model.RetrieveDataException;
 import se.kth.iv1351.smschool.model.Student;
 
-import java.sql.SQLOutput;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Scanner;
 
+/**
+ * This is the main class for the application. It handles the startup
+ * and act as a view.
+ */
 public class Main {
 
+    /**
+     * The main method.
+     *
+     * @param args not implemented in this application.
+     */
     public static void main(String[] args) {
         try {
             Controller contr = new Controller();
@@ -163,8 +174,6 @@ public class Main {
                 e.printStackTrace();
             }
         }
-
-
     }
 
 
