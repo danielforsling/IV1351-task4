@@ -1,3 +1,7 @@
+/*
+ * @author Daniel Forsling 2021-01-01
+ */
+
 package se.kth.iv1351.smschool.controller;
 
 import se.kth.iv1351.smschool.integration.SMschoolDB;
@@ -9,14 +13,30 @@ import se.kth.iv1351.smschool.model.Student;
 
 import java.util.List;
 
+/**
+ *  The controller of the application. All calls to model passes through here.
+ *  The constroller calls the object which calls the database.
+ */
 public class Controller {
 
     private final SMschoolDB schoolDatabase;
 
+    /**
+     * Constructor. Establish connection with the database.
+     *
+     * @throws DBException if failed to connect to database.
+     */
     public Controller() throws DBException {
         this.schoolDatabase = new SMschoolDB();
     }
 
+    /**
+     * Searches for all available instruments, i.e. the ones that are not
+     * rented out.
+     *
+     * @return All instruments as a List.
+     * @throws RetrieveDataException if failed to search for available instruments
+     */
     public List<? extends Instrument> getAllAvailableInstruments()
     throws RetrieveDataException{
         try {
@@ -26,14 +46,28 @@ public class Controller {
         }
     }
 
-    public Student findStudent(int i) throws RetrieveDataException {
+    /**
+     * Searches for a specified student
+     *
+     * @param id the ID of the student
+     * @return The Student-object
+     * @throws RetrieveDataException if failed to search for student.
+     */
+    public Student findStudent(int id) throws RetrieveDataException {
         try {
-            return schoolDatabase.findStudent(i);
+            return schoolDatabase.findStudent(id);
         } catch (DBException e) {
            throw new RetrieveDataException("Failed to retrieve student", e);
         }
     }
 
+    /**
+     * Searches for all active rentals from a specified student.
+     *
+     * @param studentID the ID of the student
+     * @return all rentals as a list, if no rentals are found, the list is empty.
+     * @throws RetrieveDataException if failed to retrive rentals
+     */
     public List getActiveRentalsForStudent(int studentID)
                                             throws RetrieveDataException{
         try {
@@ -43,6 +77,13 @@ public class Controller {
         }
     }
 
+    /**
+     * Counts the number of active rentals for a specified student.
+     *
+     * @param studentID the ID of the student.
+     * @return the number of rentals.
+     * @throws RetrieveDataException if failed to count rentals.
+     */
     public int getNumberOfActiveRentals(int studentID)
                                                 throws RetrieveDataException {
         try {
@@ -52,6 +93,13 @@ public class Controller {
         }
     }
 
+    /**
+     *  Check if a specified instrument is available for rental
+     *
+     * @param instrumentID the ID of the instrument.
+     * @return true if instrument is available, else false
+     * @throws RetrieveDataException if failed to check if instrument is available
+     */
     public boolean instrumentIsAvailable(int instrumentID)
                                                 throws RetrieveDataException {
         try {
@@ -61,6 +109,14 @@ public class Controller {
         }
     }
 
+    /**
+     * Rents an instrument for a specified student.
+     *
+     * @param studentID the ID of the student.
+     * @param date the date of the ending of rental.
+     * @param instr the id of the instrument.
+     * @throws RetrieveDataException if failed to rent instrument
+     */
     public void studentRentInstrument(int studentID, String date, int instr)
                                                 throws RetrieveDataException {
         try {
@@ -70,6 +126,13 @@ public class Controller {
         }
     }
 
+    /**
+     * Terminates the rental for a student, i.e. sets the lease_end column
+     * to the current date.
+     *
+     * @param rental the rental object to be terminated
+     * @throws RetrieveDataException if failed to terminate rental.
+     */
     public void studentTerminateRental(Rental rental) throws RetrieveDataException {
         try {
             schoolDatabase.studentTerminateRental(rental);

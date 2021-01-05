@@ -4,7 +4,7 @@
  * Inspiration of this java class is taken from the programs jdbc-intro and jdbc-bank
  * created by Leif Lindbäck.
  * https://github.com/KTH-IV1351/jdbc-intro
- * jdbc-bank https://github.com/KTH-IV1351/jdbc-bank
+ * https://github.com/KTH-IV1351/jdbc-bank
  */
 
 package se.kth.iv1351.smschool.integration;
@@ -129,7 +129,7 @@ public class SMschoolDB {
      *
      * @param studentID the ID of the student
      * @return all rentals as a list, if no rentals are found, the list is empty.
-     * @throws DBException
+     * @throws DBException if failed to retrive rentals
      */
     public List<? extends Rental> listActiveRentalsForStudent(int studentID) throws DBException {
         String failureMessage = "Could not retrieve rentals for studentID" + studentID;
@@ -187,7 +187,7 @@ public class SMschoolDB {
     }
 
     /**
-     * Check is the specified instrument is available.
+     * Check if the specified instrument is available.
      *
      * @param instrumentID the ID of the instruments.
      * @return true if available, else false
