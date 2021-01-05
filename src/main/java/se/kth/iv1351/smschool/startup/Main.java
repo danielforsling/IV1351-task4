@@ -137,8 +137,8 @@ public class Main {
     }
 
     private static void terminateRental(Student student, Controller controller, Scanner input) throws RetrieveDataException {
-        System.out.println("Which rental do you want to terminate?\nEnter rentalID:");
         List<Rental> list = getRentals(student, controller);
+        System.out.println("Which rental do you want to terminate?\nEnter rentalID:");
         Rental rentalToTerminate = null;
         int index = input.nextInt();
         for (Rental rental: list) {

@@ -1,25 +1,25 @@
+/*
+ *    @author Daniel Forsling 2020-12-31
+ */
 package se.kth.iv1351.smschool.model;
 
-
 /**
- * @author Daniel Forsling 2020-12-31
- *
- *
+ *  This class represents an instrument rented by a student of a music school.
  */
 public class Instrument {
 
-    private int id;
-    private String type;
-    private String brand;
-    private int pricePerMonth;
+    private final int id;
+    private final String type;
+    private final String brand;
+    private final int pricePerMonth;
 
     /**
-     *  constructor
+     *  Creates an instance of this class.
      *
-     * @param id
-     * @param type
-     * @param brand
-     * @param pricePerMonth
+     * @param id The id of the instrument.
+     * @param type The type of the instrument.
+     * @param brand The brand of the instrument.
+     * @param pricePerMonth The renting price/month for this instrument.
      */
     public Instrument(int id, String type, String brand, int pricePerMonth) {
         this.id = id;
@@ -28,6 +28,9 @@ public class Instrument {
         this.pricePerMonth = pricePerMonth;
     }
 
+    /**
+     * @return The id of the instrument.
+     */
     public int getId() {
         return id;
     }
@@ -39,10 +42,14 @@ public class Instrument {
     public String toString() {
 
         StringBuilder sb = new StringBuilder();
-        sb.append("instrument: [ id: " + id);
-        sb.append(", type: " + type);
-        sb.append(", brand: " + brand);
-        sb.append(", price/month: " + pricePerMonth);
+        sb.append("instrument: [ id: ");
+        sb.append(id);
+        sb.append(", type: ");
+        sb.append(type);
+        sb.append(", brand: ");
+        sb.append(brand);
+        sb.append(", price/month: ");
+        sb.append(pricePerMonth);
         sb.append("]");
 
         return sb.toString();
