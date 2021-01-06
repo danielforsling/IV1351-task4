@@ -126,7 +126,7 @@ public class Main {
 
         int noOfRentals = loggedIn.getNoOfRentals();
         if (noOfRentals < 2) {
-            System.out.println("You can rent " + (2 - noOfRentals) + " instruments");
+            System.out.println("You can rent " + (2 - noOfRentals) + " instrument(s)");
             System.out.println("Enter the id of the instrument you want to rent");
             String userInput = input.next();
             int instr = checkInput(userInput);
