@@ -24,13 +24,21 @@ import java.util.List;
  */
 public class SMschoolDB {
 
-    private static final String RENTAL = "rental";
-    private static final String RENTAL_COL1 = "rental_id";
+    private static final String RENTAL_TABLE_NAME = "rental";
+    private static final String RENTAL_ID = "rental_id";
     private static final String RENTAL_COL2 = "student_id";
-    private static final String RENTAL_COL3 = "lease_start";
-    private static final String RENTAL_COL4 = "lease_end";
+    private static final String RENTAL_LEASE_START = "lease_start";
+    private static final String RENTAL_LEASE_END = "lease_end";
+
+    private static final String SCHOOL_INSTRUMENT_ID = "school_instrument_id";
+    private static final String CURRENT_DATE = "CURRENT_DATE";
 
     private static final String STUDENT_PK = "student_id";
+
+    private static final String AVAIL_INSTR_TABLE_NAME = "available_instruments";
+    private static final String INSTR_TYPE_TABLE_NAME = "instrument_type";
+    private static final String INST_TYPE_ID = "instrument_type_id";
+    private static final String AVAILABLE = "available";
 
     private Connection connection;
 
@@ -296,32 +304,40 @@ public class SMschoolDB {
 
         connection.setAutoCommit(false);
     }
-
+    
     private void prepareStatements() throws SQLException {
 
-        findAllAvailableInstrumentsStmt = connection.prepareStatement("SELECT school_instrument_id, type, brand, price_per_month" +
-                " FROM available_instruments INNER JOIN instrument_type" +
-                " ON available_instruments.instrument_type_id = instrument_type.instrument_type_id " +
-                "WHERE available = 'TRUE'");
+        findAllAvailableInstrumentsStmt = connection.prepareStatement("SELECT " + SCHOOL_INSTRUMENT_ID +
+                ", type, brand, price_per_month" +
+                " FROM " + AVAIL_INSTR_TABLE_NAME + " INNER JOIN "+ INSTR_TYPE_TABLE_NAME +
+                " ON " + AVAIL_INSTR_TABLE_NAME + "."+INST_TYPE_ID +" = " + INSTR_TYPE_TABLE_NAME + "." + INST_TYPE_ID  +
+                " WHERE " +AVAILABLE +" = 'TRUE' ORDER BY " + SCHOOL_INSTRUMENT_ID);
 
-        findActiveRentalsWithStudent = connection.prepareStatement("SELECT * FROM " + RENTAL +
-                " WHERE student_id = ? AND CURRENT_DATE BETWEEN lease_start AND lease_end");
+        findActiveRentalsWithStudent = connection.prepareStatement("SELECT " + RENTAL_ID + ", " +  STUDENT_PK + ", "
+                + RENTAL_LEASE_START + ", " + RENTAL_LEASE_END + ", " + RENTAL_TABLE_NAME + "." +SCHOOL_INSTRUMENT_ID +
+                " FROM " + RENTAL_TABLE_NAME + " JOIN " + AVAIL_INSTR_TABLE_NAME + " ON " +RENTAL_TABLE_NAME + "."+
+                        SCHOOL_INSTRUMENT_ID + "=" + AVAIL_INSTR_TABLE_NAME + "." + SCHOOL_INSTRUMENT_ID +
+                " WHERE " + STUDENT_PK + " = ? AND " + CURRENT_DATE + " BETWEEN " + RENTAL_LEASE_START + " AND " +
+                  RENTAL_LEASE_END  + " AND " + AVAILABLE + " = false");
 
-        countActiveStudentRental = connection.prepareStatement("SELECT COUNT(*) FROM " + RENTAL +
-                " WHERE student_id = ? AND CURRENT_DATE BETWEEN lease_start AND lease_end");
+        countActiveStudentRental = connection.prepareStatement("SELECT COUNT(*) FROM " + RENTAL_TABLE_NAME +
+                " JOIN " + AVAIL_INSTR_TABLE_NAME + " ON " +RENTAL_TABLE_NAME + "."+
+                SCHOOL_INSTRUMENT_ID + "=" + AVAIL_INSTR_TABLE_NAME + "." + SCHOOL_INSTRUMENT_ID +
+                        " WHERE " + STUDENT_PK + " = ? AND " + CURRENT_DATE + " BETWEEN " + RENTAL_LEASE_START + " AND " +
+                        RENTAL_LEASE_END  + " AND " + AVAILABLE + " = false");
 
-        studentRentStmt = connection.prepareStatement("INSERT INTO " + RENTAL +
-                " (\"" + STUDENT_PK + "\", \"lease_start\", \"lease_end\", \"school_instrument_id\") " +
-                "VALUES (?, CURRENT_DATE, ?, ?)");
+        studentRentStmt = connection.prepareStatement("INSERT INTO " + RENTAL_TABLE_NAME +
+                " (\"" + STUDENT_PK + "\", \""+RENTAL_LEASE_START+"\", \""+ RENTAL_LEASE_END +"\", \"" + SCHOOL_INSTRUMENT_ID + "\") " +
+                "VALUES (?, " + CURRENT_DATE + ", ?, ?)");
 
-        findStudentStmt = connection.prepareStatement("SELECT student_id, first_name, last_name FROM student WHERE " +
-                STUDENT_PK + " = ?");
+        findStudentStmt = connection.prepareStatement("SELECT "+ STUDENT_PK + " , first_name, last_name " +
+                "FROM student WHERE " + STUDENT_PK + " = ?");
 
-        updateInstrumentStatusStmt = connection.prepareStatement("UPDATE available_instruments SET \"available\" = ?" +
-                " WHERE \"school_instrument_id\" = ?");
+        updateInstrumentStatusStmt = connection.prepareStatement("UPDATE " + AVAIL_INSTR_TABLE_NAME + " SET \""+AVAILABLE+"\" = ?" +
+                " WHERE \"" + SCHOOL_INSTRUMENT_ID + "\" = ?");
 
-        terminateRentalStmt = connection.prepareStatement("UPDATE rental SET \"lease_end\" = CURRENT_DATE" +
-                " WHERE \"rental_id\" = ?");
+        terminateRentalStmt = connection.prepareStatement("UPDATE " + RENTAL_TABLE_NAME + " SET \"" + RENTAL_LEASE_END
+                + "\" = " + CURRENT_DATE + " WHERE \""+RENTAL_ID+"\" = ?");
 
     }
 
