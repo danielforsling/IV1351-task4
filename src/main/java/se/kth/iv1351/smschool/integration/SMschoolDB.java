@@ -43,8 +43,6 @@ public class SMschoolDB {
     private Connection connection;
 
     private PreparedStatement findActiveRentalsWithStudent;
-
-    private PreparedStatement findAllRentals;
     private PreparedStatement findAllAvailableInstrumentsStmt;
 
 
@@ -304,7 +302,7 @@ public class SMschoolDB {
 
         connection.setAutoCommit(false);
     }
-    
+
     private void prepareStatements() throws SQLException {
 
         findAllAvailableInstrumentsStmt = connection.prepareStatement("SELECT " + SCHOOL_INSTRUMENT_ID +

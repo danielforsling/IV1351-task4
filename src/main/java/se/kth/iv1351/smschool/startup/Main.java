@@ -1,5 +1,5 @@
 /*
-*   @author Daniel Forsling 2021-01-02
+ *   @author Daniel Forsling 2021-01-02
  */
 package se.kth.iv1351.smschool.startup;
 
@@ -10,7 +10,9 @@ import se.kth.iv1351.smschool.model.Rental;
 import se.kth.iv1351.smschool.model.RetrieveDataException;
 import se.kth.iv1351.smschool.model.Student;
 
+import java.sql.SQLOutput;
 import java.time.LocalDate;
+import java.util.InputMismatchException;
 import java.util.List;
 import java.util.Scanner;
 
@@ -31,49 +33,61 @@ public class Main {
 
             Scanner input = new Scanner(System.in);
 
-            System.out.println("starting");
-            int i;
+
             while (true) {
-                System.out.println("enter your id to log in: ");
-                i = input.nextInt();
-                if (i == 0)
-                    break;
-                Student loggedIn = contr.findStudent(i);
-                if (loggedIn == null) {
-                    System.out.println("Enter a valid id!");
-                }
-                while (i != 0 && loggedIn != null) {
-                    System.out.println("Logged in as: " + loggedIn.getFirstName() + " " + loggedIn.getLastName());
-                    System.out.println("1 - check available instruments");
-                    System.out.println("2 - check rentals");
-                    System.out.println("3 - rent an instrument");
-                    System.out.println("4 - terminate rental");
-                    System.out.println("0 - log out\n");
 
-                    i = input.nextInt();
-                    switch (i) {
-                        case 1:
-                            getAvailableInstruments(contr);
-                            pressEnter(input);
-                            break;
-                        case 2:
-                            getRentals(loggedIn, contr);
-                            pressEnter(input);
-                            break;
-                        case 3:
-                            rentInstrument(loggedIn, input, contr);
+                System.out.println("Enter your id to log in: ");
 
-                            pressEnter(input);
-                            break;
-                        case 4:
-                            terminateRental(loggedIn, contr, input);
-                            pressEnter(input);
-                            break;
-                        default:
-                            break;
+                String userInput = input.next();
+
+
+                int i = checkInput(userInput);
+
+                if (i != -1) {
+                    if (i == 0)
+                        break;
+                    Student loggedIn = contr.findStudent(i);
+                    if (loggedIn == null) {
+                        System.out.println("Enter an existing id ");
                     }
+                    while (i != 0 && loggedIn != null) {
+                        System.out.println("\nLogged in as: " + loggedIn.getFirstName() + " " + loggedIn.getLastName());
+                        System.out.println("1 - check available instruments");
+                        System.out.println("2 - check rentals");
+                        System.out.println("3 - rent an instrument");
+                        System.out.println("4 - terminate rental");
+                        System.out.println("0 - log out\n");
 
+                        userInput = input.next();
+                        i = checkInput(userInput);
+
+                        switch (i) {
+                            case 1:
+                                getAvailableInstruments(contr);
+                                pressEnter(input);
+                                break;
+                            case 2:
+                                getRentals(loggedIn, contr);
+                                pressEnter(input);
+                                break;
+                            case 3:
+                                rentInstrument(loggedIn, input, contr);
+
+                                pressEnter(input);
+                                break;
+                            case 4:
+                                terminateRental(loggedIn, contr, input);
+                                pressEnter(input);
+                                break;
+                            default:
+                                break;
+                        }
+
+                    }
+                } else {
+                    System.out.println("Enter valid input");
                 }
+
             }
 
         } catch (DBException | RetrieveDataException e) {
@@ -114,13 +128,16 @@ public class Main {
         if (noOfRentals < 2) {
             System.out.println("You can rent " + (2 - noOfRentals) + " instruments");
             System.out.println("Enter the id of the instrument you want to rent");
-            int instr = input.nextInt();
+            String userInput = input.next();
+            int instr = checkInput(userInput);
             if (controller.instrumentIsAvailable(instr)) {
                 System.out.println("Instrument is available.");
 
                 System.out.println("You can rent an instrument at maximum 12 months.\n " +
                         "Please enter how many month(s) you want to rent: ");
-                int month = input.nextInt();
+                userInput = input.next();
+                int month = checkInput(userInput);
+
                 if (month > 12 || month < 1) {
                     System.out.println("Invalid input. Cannot rent instrument in " + month + " month(s)");
                 } else {
@@ -129,7 +146,7 @@ public class Main {
 
                         System.out.println("Confirm that you want to rent instrument with id: " + instr +
                                 " and return date: " + returnDate + "\n To confirm, enter [1]");
-                        if (input.nextInt() == 1) {
+                        if (checkInput(input.next()) == 1) {
                             controller.studentRentInstrument(loggedIn.getStudentID(), returnDate.toString(), instr);
                             System.out.println("You have now rented instrument with id: " + instr +
                                     " and return date: " + returnDate);
@@ -139,7 +156,7 @@ public class Main {
                         System.out.println("Invalid input");
                 }
             } else {
-                System.out.println("instrument not available");
+                System.out.println("instrument not available, or invalid input.");
             }
         } else {
             System.out.println("You cannot rent since you have " + loggedIn.getNoOfRentals() + " rentals.");
@@ -151,9 +168,10 @@ public class Main {
         List<Rental> list = getRentals(student, controller);
         System.out.println("Which rental do you want to terminate?\nEnter rentalID:");
         Rental rentalToTerminate = null;
-        int index = input.nextInt();
-        for (Rental rental: list) {
-            if(rental.getRentalID()==index) {
+        String userInput = input.next();
+        int index = checkInput(userInput);
+        for (Rental rental : list) {
+            if (rental.getRentalID() == index) {
                 rentalToTerminate = rental.getRental(index);
                 break;
             }
@@ -176,6 +194,14 @@ public class Main {
         }
     }
 
+    private static int checkInput(String userInput) {
+        try {
+            return Integer.parseInt(userInput);
+        } catch (NumberFormatException e) {
+            return -1;
+        }
+
+    }
 
     private static void pressEnter(Scanner input) {
         System.out.println("Press enter to continue");
